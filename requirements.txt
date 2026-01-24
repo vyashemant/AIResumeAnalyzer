@@ -1,0 +1,8 @@
+flask
+python-dotenv
+supabase
+pdfplumber
+python-docx
+google-genai
+supabase
+reportlab

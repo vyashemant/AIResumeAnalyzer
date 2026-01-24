@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-10 bg-gray-100">
+
+<h1 class="text-2xl font-bold mb-6">Resume Analyzer</h1>
+
+<form method="POST" action="/analyze" enctype="multipart/form-data"
+      class="bg-white p-6 rounded shadow w-full max-w-2xl">
+
+    <label class="block mb-2 font-medium">Upload Resume (PDF/DOCX)</label>
+    <input type="file" name="resume" required
+           class="w-full border p-2 mb-4">
+
+    <label class="block mb-2 font-medium">Job Description</label>
+    <textarea name="job_description" rows="6" required
+              class="w-full border p-2 mb-4"
+              placeholder="Paste job description here..."></textarea>
+
+    <button class="bg-black text-white px-4 py-2 rounded">
+        Analyze Resume
+    </button>
+</form>
+    <div class="mt-6">
+        <a href="/history"
+        class="inline-block text-blue-600 underline">
+            View Analysis History
+        </a>
+    </div>
+</body>

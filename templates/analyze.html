@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Analysis Result</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-10 bg-gray-100">
+
+<h1 class="text-2xl font-bold mb-4">ATS Score: {{ result.ats_score }}%</h1>
+
+<h2 class="font-semibold mt-4">Matched Skills</h2>
+<ul class="list-disc ml-6">
+    {% for skill in result.matched_skills %}
+        <li>{{ skill }}</li>
+    {% endfor %}
+</ul>
+
+<h2 class="font-semibold mt-4">Missing Skills</h2>
+<ul class="list-disc ml-6">
+    {% for skill in result.missing_skills %}
+        <li>{{ skill }}</li>
+    {% endfor %}
+</ul>
+
+<h2 class="font-semibold mt-4">Improvements</h2>
+<p><b>Summary:</b> {{ result.improvements.summary }}</p>
+<p><b>Experience:</b> {{ result.improvements.experience }}</p>
+<p><b>Skills:</b> {{ result.improvements.skills }}</p>
+
+<a href="/dashboard" class="inline-block mt-6 text-blue-600">
+    Analyze another resume
+</a>
+
+<div class="mt-8 flex gap-4">
+    <a href="/download-report"
+       class="bg-green-600 text-white px-4 py-2 rounded">
+        Download ATS Report (PDF)
+    </a>
+
+    <form method="POST" action="/rewrite">
+        <button class="bg-blue-600 text-white px-4 py-2 rounded">
+            Rewrite Resume (AI)
+        </button>
+    </form>
+</div>
+
+</body>
+</html>

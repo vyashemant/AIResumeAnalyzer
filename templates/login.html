@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex justify-center items-center h-screen bg-gray-100">
+<form method="POST" class="bg-white p-6 rounded w-96 shadow">
+    {% if error %}
+    <div class="mb-3 text-red-600 text-sm">
+        {{ error }}
+    </div>
+    {% endif %}
+    <h2 class="text-xl font-bold mb-4">Login</h2>
+
+    <input name="username" placeholder="Username"
+        required class="w-full border p-2 mb-3">
+
+    <input name="password" type="password" placeholder="Password"
+        required class="w-full border p-2 mb-4">
+
+    <button class="w-full bg-black text-white p-2">
+        Login
+    </button>
+
+    <p class="text-sm mt-3 text-center">
+        New user?
+        <a href="/signup" class="text-blue-600">Sign up</a>
+    </p>
+</form>
+
+</body>
+</html>
