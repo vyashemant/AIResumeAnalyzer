@@ -6,6 +6,13 @@ from db.supabase_client import supabase
 
 resume_bp = Blueprint("resume", __name__)
 
+# ---------- UPLOAD ----------
+@resume_bp.route("/upload")
+def upload():
+    if "user" not in session:
+        return redirect(url_for("auth.login"))
+    return render_template("upload.html")
+
 # ---------- ANALYZE ----------
 @resume_bp.route("/analyze", methods=["POST"])
 def analyze():
@@ -67,4 +74,18 @@ def rewrite():
         session["last_resume_text"],
         session["last_jd"]
     )
+    return render_template("rewrite.html", improved=improved)
+
+# ---------- DIRECT REWRITE ----------
+@resume_bp.route("/rewrite-direct", methods=["POST"])
+def rewrite_direct():
+    if "user" not in session:
+        return redirect(url_for("auth.login"))
+
+    resume_file = request.files.get("resume")
+    job_description = request.form.get("job_description")
+
+    resume_text = extract_text(resume_file)
+    improved = rewrite_resume(resume_text, job_description if job_description else None)
+
     return render_template("rewrite.html", improved=improved)

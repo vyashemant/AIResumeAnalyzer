@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, session
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from db.supabase_client import supabase
 from services.auth_service import (
     login_with_username,
@@ -16,38 +16,46 @@ def login():
         username = request.form.get("username")
         password = request.form.get("password")
 
-        res = login_with_username(username, password)
-        if not res or not res.user:
-            return render_template(
-                "login.html",
-                error="Invalid username or password"
-            )
+        if not username or not password:
+            flash("Username and password are required", "error")
+            return render_template("login.html")
 
-        user = res.user
+        try:
+            res = login_with_username(username, password)
+            if not res or not res.user:
+                flash("Invalid username or password", "error")
+                return render_template("login.html")
 
-        session["user"] = {
-            "id": user.id,
-            "username": username,
-            "email": user.email
-        }
+            user = res.user
 
-        # ✅ ENSURE profile exists (SAFE POINT)
-        existing = (
-            supabase
-            .table("profiles")
-            .select("id")
-            .eq("id", user.id)
-            .execute()
-        )
+            # Get or create user profile
+            profile = supabase.table("profiles").select("*").eq("id", user.id).execute()
+            profile_data = profile.data[0] if profile.data else None
 
-        if not existing.data:
-            supabase.table("profiles").insert({
+            if not profile_data:
+                # Create new profile
+                supabase.table("profiles").insert({
+                    "id": user.id,
+                    "email": user.email,
+                    "username": username
+                }).execute()
+                session_username = username
+            else:
+                # Use existing profile username
+                session_username = profile_data.get("username", username)
+
+            session["user"] = {
                 "id": user.id,
-                "email": user.email,
-                "username": username
-            }).execute()
+                "username": session_username,
+                "email": user.email
+            }
 
-        return redirect(url_for("dashboard.dashboard"))
+            flash("Login successful!", "success")
+            return redirect(url_for("dashboard.dashboard"))
+
+        except Exception as e:
+            flash("An error occurred during login. Please try again.", "error")
+            return render_template("login.html")
 
     return render_template("login.html")
 
@@ -58,20 +66,39 @@ def signup():
     if request.method == "POST":
         email = request.form.get("email")
         password = request.form.get("password")
+        username = request.form.get("username")
+        first_name = request.form.get("first_name")
+        last_name = request.form.get("last_name")
 
-        res = supabase.auth.sign_up({
-            "email": email,
-            "password": password
-        })
+        if not email or not password or not username:
+            flash("Email, password, and username are required", "error")
+            return render_template("signup.html")
 
-        if not res or not res.user:
-            return render_template(
-                "signup.html",
-                error="Signup failed"
-            )
+        try:
+            res = supabase.auth.sign_up({
+                "email": email,
+                "password": password
+            })
 
-        # ❌ NO profiles insert/update here
-        return redirect(url_for("auth.login"))
+            if not res or not res.user:
+                flash("Signup failed. Please try again.", "error")
+                return render_template("signup.html")
+
+            # Create profile
+            supabase.table("profiles").insert({
+                "id": res.user.id,
+                "email": email,
+                "username": username,
+                "first_name": first_name,
+                "last_name": last_name
+            }).execute()
+
+            flash("Signup successful! Please log in.", "success")
+            return redirect(url_for("auth.login"))
+
+        except Exception as e:
+            flash("An error occurred during signup. Please try again.", "error")
+            return render_template("signup.html")
 
     return render_template("signup.html")
 
@@ -85,31 +112,46 @@ def auth_google():
 
 @auth_bp.route("/auth/callback")
 def auth_callback():
+    if "user" in session:
+        flash("You are already logged in.", "info")
+        return redirect(url_for("dashboard.dashboard"))
+
     code = request.args.get("code")
     if not code:
-        return "No auth code", 400
+        flash("No authorization code received", "error")
+        return redirect(url_for("auth.login"))
 
-    res = exchange_google_code(code)
-    if not res or not res.user:
-        return "Google login failed", 400
+    try:
+        res = exchange_google_code(code)
+        if not res or not res.user:
+            flash("Google login failed", "error")
+            return redirect(url_for("auth.login"))
 
-    user = res.user
+        user = res.user
 
-    profile = supabase.table("profiles").select("*").eq("id", user.id).execute()
-    profile_data = profile.data[0] if profile.data else None
+        profile = supabase.table("profiles").select("*").eq("id", user.id).execute()
+        profile_data = profile.data[0] if profile.data else None
 
-    session["user"] = {"id": user.id, "email": user.email}
+        session["user"] = {"id": user.id, "email": user.email}
 
-    if not profile_data or not profile_data.get("username"):
-        if not profile_data:
-            supabase.table("profiles").insert({
-                "id": user.id,
-                "email": user.email
-            }).execute()
+        if not profile_data or not profile_data.get("username"):
+            if not profile_data:
+                supabase.table("profiles").insert({
+                    "id": user.id,
+                    "email": user.email
+                }).execute()
 
-        return redirect(url_for("auth.complete_profile"))
+            return redirect(url_for("auth.complete_profile"))
 
-    return redirect(url_for("dashboard.dashboard"))
+        # Update session with username from profile
+        session["user"]["username"] = profile_data.get("username")
+
+        flash("Google login successful!", "success")
+        return redirect(url_for("dashboard.dashboard"))
+
+    except Exception as e:
+        flash("An error occurred during Google login. Please try again.", "error")
+        return redirect(url_for("auth.login"))
 
 
 # ---------- COMPLETE PROFILE ----------
@@ -123,16 +165,38 @@ def complete_profile():
         first_name = request.form.get("first_name")
         last_name = request.form.get("last_name")
 
-        existing = supabase.table("profiles").select("id").eq("username", username).execute()
-        if existing.data:
-            return "Username already taken", 400
+        if not username:
+            flash("Username is required", "error")
+            return render_template("complete_profile.html")
 
-        supabase.table("profiles").update({
-            "username": username,
-            "first_name": first_name,
-            "last_name": last_name
-        }).eq("id", session["user"]["id"]).execute()
+        try:
+            existing = supabase.table("profiles").select("id").eq("username", username).execute()
+            if existing.data:
+                flash("Username already taken", "error")
+                return render_template("complete_profile.html")
 
-        return redirect(url_for("dashboard.dashboard"))
+            supabase.table("profiles").update({
+                "username": username,
+                "first_name": first_name,
+                "last_name": last_name
+            }).eq("id", session["user"]["id"]).execute()
+
+            # Update session with username
+            session["user"]["username"] = username
+
+            flash("Profile completed successfully!", "success")
+            return redirect(url_for("dashboard.dashboard"))
+
+        except Exception as e:
+            flash("An error occurred while completing your profile. Please try again.", "error")
+            return render_template("complete_profile.html")
 
     return render_template("complete_profile.html")
+
+
+# ---------- LOGOUT ----------
+@auth_bp.route("/logout")
+def logout():
+    session.clear()
+    flash("Logged out successfully.", "success")
+    return redirect(url_for("auth.login"))

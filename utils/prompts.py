@@ -24,8 +24,9 @@ JOB DESCRIPTION:
 {job_description}
 """
 
-def rewrite_prompt(resume_text, job_description):
-    return f"""
+def rewrite_prompt(resume_text, job_description=None):
+    if job_description:
+        return f"""
 You are a professional resume writer.
 
 Rewrite the resume to better match the job description.
@@ -37,4 +38,15 @@ RESUME:
 
 JOB DESCRIPTION:
 {job_description}
+"""
+    else:
+        return f"""
+You are a professional resume writer.
+
+Rewrite the resume to make it more impactful and ATS-friendly.
+Use strong action verbs, quantify achievements, and improve formatting.
+Return ONLY improved resume text.
+
+RESUME:
+{resume_text}
 """

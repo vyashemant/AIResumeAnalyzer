@@ -24,3 +24,17 @@ def generate_pdf(result, filepath):
         story.append(Spacer(1, 8))
 
     doc.build(story)
+
+def generate_resume_pdf(resume_text, filepath):
+    doc = SimpleDocTemplate(filepath, pagesize=A4)
+    styles = getSampleStyleSheet()
+    story = []
+
+    # Split resume text into lines and add as paragraphs
+    lines = resume_text.split('\n')
+    for line in lines:
+        if line.strip():  # Skip empty lines
+            story.append(Paragraph(line.strip(), styles['Normal']))
+            story.append(Spacer(1, 6))
+
+    doc.build(story)
