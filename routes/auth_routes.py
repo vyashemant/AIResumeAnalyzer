@@ -70,37 +70,53 @@ def signup():
         first_name = request.form.get("first_name")
         last_name = request.form.get("last_name")
 
-        if not email or not password or not username:
-            flash("Email, password, and username are required", "error")
+        if not all([email, password, username]):
+            flash("All fields are required", "error")
             return render_template("signup.html")
 
-        try:
-            res = supabase.auth.sign_up({
-                "email": email,
-                "password": password
-            })
+        # 1️⃣ Create auth user
+        res = supabase.auth.sign_up({
+            "email": email,
+            "password": password
+        })
 
-            if not res or not res.user:
-                flash("Signup failed. Please try again.", "error")
-                return render_template("signup.html")
+        if not res or not res.user:
+            flash("Signup failed", "error")
+            return render_template("signup.html")
 
-            # Create profile
-            supabase.table("profiles").insert({
-                "id": res.user.id,
-                "email": email,
-                "username": username,
-                "first_name": first_name,
-                "last_name": last_name
-            }).execute()
+        # 2️⃣ IMMEDIATELY login the user
+        auth = supabase.auth.sign_in_with_password({
+            "email": email,
+            "password": password
+        })
 
-            flash("Signup successful! Please log in.", "success")
+        if not auth or not auth.user:
+            flash("Login after signup failed", "error")
             return redirect(url_for("auth.login"))
 
-        except Exception as e:
-            flash("An error occurred during signup. Please try again.", "error")
-            return render_template("signup.html")
+        user = auth.user
+
+        # 3️⃣ Create profile (NOW SAFE)
+        supabase.table("profiles").insert({
+            "id": user.id,
+            "email": email,
+            "username": username,
+            "first_name": first_name,
+            "last_name": last_name
+        }).execute()
+
+        # 4️⃣ Create session
+        session["user"] = {
+            "id": user.id,
+            "username": username,
+            "email": email
+        }
+
+        flash("Account created successfully!", "success")
+        return redirect(url_for("dashboard.dashboard"))
 
     return render_template("signup.html")
+
 
 
 # ---------- GOOGLE AUTH ----------

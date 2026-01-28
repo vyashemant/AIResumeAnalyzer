@@ -36,18 +36,18 @@ def exchange_google_code(code, redirect_url):
     })
 
 
-def signup_user(username, email, password):
-    # ONLY create auth user
-    res = supabase.auth.sign_up({
-        "email": email,
-        "password": password
-    })
+# def signup_user(username, email, password):
+#     # ONLY create auth user
+#     res = supabase.auth.sign_up({
+#         "email": email,
+#         "password": password
+#     })
 
-    if not res or not res.user:
-        return None
+#     if not res or not res.user:
+#         return None
 
-    # ❌ DO NOT touch profiles here
-    return res.user
+#     # ❌ DO NOT touch profiles here
+#     return res.user
 
 
 def login_with_username(username, password):
