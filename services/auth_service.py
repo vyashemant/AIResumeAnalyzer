@@ -29,10 +29,12 @@ def google_oauth_login(redirect_url):
     return res.url
 
 
-def exchange_google_code(code):
+def exchange_google_code(code, redirect_url):
     return supabase.auth.exchange_code_for_session({
-        "auth_code": code
+        "auth_code": code,
+        "redirect_uri": redirect_url
     })
+
 
 def signup_user(username, email, password):
     # ONLY create auth user

@@ -106,25 +106,24 @@ def signup():
 # ---------- GOOGLE AUTH ----------
 @auth_bp.route("/auth/google")
 def auth_google():
-    redirect_url = "https://ai-resume-analyzer-seven-self.vercel.app/auth/callback"
+    redirect_url = url_for("auth.auth_callback", _external=True)
     return redirect(google_oauth_login(redirect_url))
 
 
 @auth_bp.route("/auth/callback")
 def auth_callback():
-    if "user" in session:
-        flash("You are already logged in.", "info")
-        return redirect(url_for("dashboard.dashboard"))
-
     code = request.args.get("code")
     if not code:
-        flash("No authorization code received", "error")
+        flash("Google login failed.", "error")
         return redirect(url_for("auth.login"))
 
+    redirect_url = url_for("auth.auth_callback", _external=True)
+
     try:
-        res = exchange_google_code(code)
+        res = exchange_google_code(code, redirect_url)
+
         if not res or not res.user:
-            flash("Google login failed", "error")
+            flash("Google login failed.", "error")
             return redirect(url_for("auth.login"))
 
         user = res.user
@@ -132,25 +131,27 @@ def auth_callback():
         profile = supabase.table("profiles").select("*").eq("id", user.id).execute()
         profile_data = profile.data[0] if profile.data else None
 
-        session["user"] = {"id": user.id, "email": user.email}
+        session["user"] = {
+            "id": user.id,
+            "email": user.email
+        }
 
-        if not profile_data or not profile_data.get("username"):
-            if not profile_data:
-                supabase.table("profiles").insert({
-                    "id": user.id,
-                    "email": user.email
-                }).execute()
-
+        if not profile_data:
+            supabase.table("profiles").insert({
+                "id": user.id,
+                "email": user.email
+            }).execute()
             return redirect(url_for("auth.complete_profile"))
 
-        # Update session with username from profile
-        session["user"]["username"] = profile_data.get("username")
+        if not profile_data.get("username"):
+            return redirect(url_for("auth.complete_profile"))
 
-        flash("Google login successful!", "success")
+        session["user"]["username"] = profile_data["username"]
         return redirect(url_for("dashboard.dashboard"))
 
     except Exception as e:
-        flash("An error occurred during Google login. Please try again.", "error")
+        print("OAuth error:", e)
+        flash("Google login failed.", "error")
         return redirect(url_for("auth.login"))
 
 
