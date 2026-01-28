@@ -36,18 +36,18 @@ def exchange_google_code(code, redirect_url):
     })
 
 
-# def signup_user(username, email, password):
-#     # ONLY create auth user
-#     res = supabase.auth.sign_up({
-#         "email": email,
-#         "password": password
-#     })
+def signup_user(username, email, password):
+    # ONLY create auth user
+    res = supabase.auth.sign_up({
+        "email": email,
+        "password": password
+    })
 
-#     if not res or not res.user:
-#         return None
+    if not res or not res.user:
+        return None
 
-#     # ❌ DO NOT touch profiles here
-#     return res.user
+    # ❌ DO NOT touch profiles here
+    return res.user
 
 
 def login_with_username(username, password):
@@ -56,25 +56,19 @@ def login_with_username(username, password):
         .table("profiles")
         .select("email")
         .eq("username", username)
+        .single()
         .execute()
     )
 
-    print("DEBUG profiles lookup:", res.data)
-
     if not res.data:
-        print("DEBUG: username not found")
         return None
 
-    email = res.data[0]["email"]
-    print("DEBUG email used for login:", email)
+    email = res.data["email"]
 
     try:
-        auth = supabase.auth.sign_in_with_password({
+        return supabase.auth.sign_in_with_password({
             "email": email,
             "password": password
         })
-        print("DEBUG auth success")
-        return auth
-    except Exception as e:
-        print("DEBUG auth error:", str(e))
+    except Exception:
         return None
