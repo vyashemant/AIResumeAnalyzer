@@ -106,7 +106,7 @@ def signup():
 # ---------- GOOGLE AUTH ----------
 @auth_bp.route("/auth/google")
 def auth_google():
-    redirect_url = "http://127.0.0.1:5000/auth/callback"
+    redirect_url = "https://ai-resume-analyzer-seven-self.vercel.app/auth/callback"
     return redirect(google_oauth_login(redirect_url))
 
 
