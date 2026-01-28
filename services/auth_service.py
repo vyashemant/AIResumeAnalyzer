@@ -1,5 +1,5 @@
 from db.supabase_client import supabase
-from supabase_auth.errors import AuthApiError
+# from supabase_auth.errors import AuthApiError
 
 
 def email_signup(email, password):
